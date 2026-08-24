@@ -10,11 +10,12 @@ The application does not store model binaries in the Android application package
 
 The application opens with:
 
-- **MobileSAM INT8 Segmentation** selected
-- **ExecuTorch + XNNPACK** shown as the runtime
-- an image preview area
-- a fixed center-box prompt shown as a dashed outline before inference
-- **Load model**, **Choose image**, and **Run segmentation** buttons
+- a MobileSAM model dropdown showing **MobileSAM INT8 Segmentation**
+- a **Load model** button
+- a **Choose image** button
+- an image preview/result area that shows **No image selected** before an image is chosen
+- a **Run segmentation** button
+- a status/result panel
 - a cyan mask overlay and output statistics after inference
 
 The default MobileSAM box prompt covers the center 80 percent of the resized `1024 x 1024` image. The prompt is fixed to make the validated Learning Path run repeatable.

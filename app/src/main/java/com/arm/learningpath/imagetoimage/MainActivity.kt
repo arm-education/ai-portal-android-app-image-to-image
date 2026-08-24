@@ -4,6 +4,7 @@ import android.app.Activity
 import android.content.Intent
 import android.graphics.Color
 import android.graphics.Typeface
+import android.graphics.drawable.ColorDrawable
 import android.graphics.drawable.GradientDrawable
 import android.net.Uri
 import android.os.Build
@@ -14,6 +15,7 @@ import android.view.WindowInsets
 import android.widget.Button
 import android.widget.FrameLayout
 import android.widget.LinearLayout
+import android.widget.PopupWindow
 import android.widget.ScrollView
 import android.widget.TextView
 import java.io.File
@@ -27,13 +29,13 @@ class MainActivity : Activity() {
     private val colorBorder = Color.rgb(190, 217, 219)
 
     private lateinit var catalog: List<ModelConfig>
-    private lateinit var modelLabelView: TextView
-    private lateinit var runtimeLabelView: TextView
+    private lateinit var modelDropdownView: TextView
     private lateinit var imagePreview: SegmentationPreviewView
     private lateinit var promptInfoView: TextView
     private lateinit var statusView: TextView
     private lateinit var outputView: TextView
     private var runner: RuntimeRunner? = null
+    private var modelDropdownPopup: PopupWindow? = null
     private var loadedConfig: ModelConfig? = null
     private var selectedImageUri: Uri? = null
     private var selectedModelIndex: Int = 0
@@ -46,6 +48,7 @@ class MainActivity : Activity() {
     }
 
     override fun onDestroy() {
+        modelDropdownPopup?.dismiss()
         runner?.close()
         super.onDestroy()
     }
@@ -88,33 +91,52 @@ class MainActivity : Activity() {
             setPadding(0, dp(6), 0, dp(16))
         })
 
-        modelLabelView = TextView(this).apply {
+        modelDropdownView = TextView(this).apply {
+            text = selectedConfig().displayName
             textSize = 16f
             setTextColor(colorTextPrimary)
-            setTypeface(typeface, Typeface.BOLD)
-            text = selectedConfig().displayName
-        }
-        runtimeLabelView = TextView(this).apply {
-            textSize = 13f
-            setTextColor(colorTextSecondary)
-            setPadding(0, dp(3), 0, 0)
-            text = runtimeLabel(selectedConfig())
-        }
-        val modelInfo = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
             gravity = Gravity.CENTER_VERTICAL
-            setPadding(dp(14), 0, dp(14), 0)
-            addView(modelLabelView)
-            addView(runtimeLabelView)
+            setSingleLine(false)
+            includeFontPadding = false
         }
         val modelFrame = FrameLayout(this).apply {
             background = roundedBackground(fillColor = colorSurface, strokeColor = colorBorder)
-            addView(modelInfo, FrameLayout.LayoutParams(
+            contentDescription = "Model: ${selectedConfig().displayName}"
+            isClickable = true
+            isFocusable = true
+            setPadding(dp(14), 0, dp(14), 0)
+            addView(modelDropdownView, FrameLayout.LayoutParams(
                 FrameLayout.LayoutParams.MATCH_PARENT,
                 FrameLayout.LayoutParams.MATCH_PARENT,
+            ).apply {
+                rightMargin = dp(32)
+            })
+            addView(TextView(this@MainActivity).apply {
+                text = "▼"
+                textSize = 18f
+                setTextColor(colorTextSecondary)
+                gravity = Gravity.CENTER
+                includeFontPadding = false
+            }, FrameLayout.LayoutParams(
+                dp(28),
+                FrameLayout.LayoutParams.MATCH_PARENT,
+                Gravity.END,
             ))
+            setOnClickListener { showModelDropdown(this) }
         }
-        root.addView(modelFrame, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(64)).apply {
+        root.addView(modelFrame, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(52)).apply {
+            bottomMargin = dp(12)
+        })
+
+        root.addView(createActionButton("Load model", filled = false).apply {
+            setOnClickListener { loadSelectedModel() }
+        }, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(52)).apply {
+            bottomMargin = dp(10)
+        })
+
+        root.addView(createActionButton("Choose image", filled = false).apply {
+            setOnClickListener { chooseImage() }
+        }, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(52)).apply {
             bottomMargin = dp(12)
         })
 
@@ -126,7 +148,7 @@ class MainActivity : Activity() {
             contentDescription = "Image preview. Tap to choose an image."
             setOnClickListener { chooseImage() }
         }
-        root.addView(imagePreview, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f).apply {
+        root.addView(imagePreview, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(150)).apply {
             bottomMargin = dp(8)
         })
 
@@ -137,23 +159,6 @@ class MainActivity : Activity() {
             setPadding(0, 0, 0, dp(12))
         }
         root.addView(promptInfoView)
-
-        val buttonRow = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-        }
-        buttonRow.addView(createActionButton("Load model", filled = false).apply {
-            setOnClickListener { loadSelectedModel() }
-        }, LinearLayout.LayoutParams(0, dp(52), 1f).apply {
-            rightMargin = dp(6)
-        })
-        buttonRow.addView(createActionButton("Choose image", filled = false).apply {
-            setOnClickListener { chooseImage() }
-        }, LinearLayout.LayoutParams(0, dp(52), 1f).apply {
-            leftMargin = dp(6)
-        })
-        root.addView(buttonRow, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(52)).apply {
-            bottomMargin = dp(12)
-        })
 
         root.addView(createActionButton("Run segmentation", filled = true).apply {
             setOnClickListener { runSelectedModel() }
@@ -185,6 +190,35 @@ class MainActivity : Activity() {
         }, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(142)))
 
         return root
+    }
+
+    private fun showModelDropdown(anchor: View) {
+        modelDropdownPopup?.dismiss()
+        val selected = selectedConfig()
+        val row = TextView(this).apply {
+            text = selected.displayName
+            textSize = 15f
+            setTextColor(colorTextPrimary)
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(dp(14), 0, dp(14), 0)
+            background = roundedBackground(fillColor = colorSurface, strokeColor = colorBorder)
+            minHeight = dp(52)
+            setOnClickListener { modelDropdownPopup?.dismiss() }
+        }
+        val popup = PopupWindow(
+            row,
+            anchor.width,
+            dp(56),
+            true,
+        ).apply {
+            isOutsideTouchable = true
+            setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                elevation = dp(6).toFloat()
+            }
+        }
+        modelDropdownPopup = popup
+        popup.showAsDropDown(anchor, 0, dp(4))
     }
 
     private fun applySystemInsets(root: View, basePadding: Int) {
@@ -234,13 +268,6 @@ class MainActivity : Activity() {
             cornerRadius = dp(8).toFloat()
             setColor(fillColor)
             setStroke(dp(1), strokeColor)
-        }
-    }
-
-    private fun runtimeLabel(config: ModelConfig): String {
-        return when (config.runtime.lowercase()) {
-            "executorch" -> "ExecuTorch + XNNPACK"
-            else -> config.runtime
         }
     }
 
