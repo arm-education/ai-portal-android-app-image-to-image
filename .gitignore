@@ -14,6 +14,7 @@ model-context/
 # Local runtime/model artifacts
 *.aar
 *.pte
+!app/src/main/assets/models/mobile-sam-int8-xnnpack-executorch/MOCK_REPLACE_ME_mobile-sam-int8-executorch.pte
 *.tflite
 *.litertlm
 *.onnx

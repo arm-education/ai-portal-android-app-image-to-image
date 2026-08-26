@@ -1,14 +1,12 @@
-package com.arm.learningpath.imagetoimage
+package com.arm.learningpath.imagetoimage.ui
 
 import android.content.Context
 import android.graphics.Bitmap
-import android.graphics.BitmapFactory
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.DashPathEffect
 import android.graphics.Paint
 import android.graphics.RectF
-import android.net.Uri
 import android.view.View
 
 class SegmentationPreviewView(context: Context) : View(context) {
@@ -30,10 +28,8 @@ class SegmentationPreviewView(context: Context) : View(context) {
     private var promptBox: FloatArray = floatArrayOf(102.4f, 102.4f, 921.6f, 921.6f)
     private var promptInputSize: Int = 1024
 
-    fun setImageUri(uri: Uri) {
-        context.contentResolver.openInputStream(uri)?.use { stream ->
-            bitmap = BitmapFactory.decodeStream(stream)
-        }
+    fun setBitmap(image: Bitmap) {
+        bitmap = image
         maskOverlay = null
         invalidate()
     }

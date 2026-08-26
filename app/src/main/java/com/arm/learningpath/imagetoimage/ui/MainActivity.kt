@@ -1,4 +1,4 @@
-package com.arm.learningpath.imagetoimage
+package com.arm.learningpath.imagetoimage.ui
 
 import android.app.Activity
 import android.content.Intent
@@ -18,6 +18,13 @@ import android.widget.LinearLayout
 import android.widget.PopupWindow
 import android.widget.ScrollView
 import android.widget.TextView
+import com.arm.learningpath.imagetoimage.catalog.ModelCatalog
+import com.arm.learningpath.imagetoimage.catalog.ModelConfig
+import com.arm.learningpath.imagetoimage.image.DecodedImage
+import com.arm.learningpath.imagetoimage.image.ImageLoader
+import com.arm.learningpath.imagetoimage.inference.RuntimeRunner
+import com.arm.learningpath.imagetoimage.inference.RuntimeRunnerFactory
+import com.arm.learningpath.imagetoimage.storage.BundledModelInstaller
 import java.io.File
 
 class MainActivity : Activity() {
@@ -38,6 +45,7 @@ class MainActivity : Activity() {
     private var modelDropdownPopup: PopupWindow? = null
     private var loadedConfig: ModelConfig? = null
     private var selectedImageUri: Uri? = null
+    private var selectedImage: DecodedImage? = null
     private var selectedModelIndex: Int = 0
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -62,10 +70,23 @@ class MainActivity : Activity() {
 
         val uri = data?.data ?: return
         selectedImageUri = uri
-        imagePreview.setImageUri(uri)
-        imagePreview.setPromptBox(defaultBoxPrompt(selectedConfig()), selectedConfig().inputImageSize)
-        promptInfoView.text = "Prompt box: center 80% of the image"
-        outputView.text = "Selected image: $uri"
+        val selected = selectedConfig()
+        setBusy("Decoding selected image")
+        Thread {
+            try {
+                val decoded = ImageLoader.decode(this, uri, selected.inputImageSize)
+                selectedImage = decoded
+                runOnUiThread {
+                    imagePreview.setBitmap(decoded.bitmap)
+                    imagePreview.setPromptBox(defaultBoxPrompt(selected), selected.inputImageSize)
+                    promptInfoView.text = "Prompt box: center 80% of the image"
+                    statusView.text = "Selected image decoded"
+                    outputView.text = "Selected image: $uri"
+                }
+            } catch (error: Throwable) {
+                showError("Image decode failed", error)
+            }
+        }.start()
     }
 
     private fun createLayout(): View {
@@ -286,6 +307,7 @@ class MainActivity : Activity() {
         setBusy("Loading ${selected.displayName} from ${modelDir.absolutePath}")
         Thread {
             try {
+                val installed = BundledModelInstaller.installIfAvailable(this, selected, modelDir)
                 runner?.close()
                 val nextRunner = RuntimeRunnerFactory.create(this, selected)
                 val loadTimeMs = nextRunner.load(modelDir, selected)
@@ -293,7 +315,13 @@ class MainActivity : Activity() {
                 loadedConfig = selected
                 showResult(
                     status = "Loaded ${selected.id} in ${loadTimeMs} ms",
-                    output = "Ready. Runtime: ${selected.runtime}\nModel path: ${modelDir.absolutePath}",
+                    output = buildString {
+                        if (installed) {
+                            appendLine("Bundled model copied into app-private storage.")
+                        }
+                        appendLine("Ready. Runtime: ${selected.runtime}")
+                        append("Model path: ${modelDir.absolutePath}")
+                    },
                 )
             } catch (error: Throwable) {
                 showError("Load failed", error)
@@ -304,12 +332,12 @@ class MainActivity : Activity() {
     private fun runSelectedModel() {
         val selected = selectedConfig()
         val activeRunner = runner
-        val imageUri = selectedImageUri
+        val image = selectedImage
         if (activeRunner == null || loadedConfig?.id != selected.id) {
             outputView.text = "Load the selected model before running it."
             return
         }
-        if (imageUri == null) {
+        if (image == null) {
             outputView.text = "Choose a photo before running the model."
             return
         }
@@ -317,7 +345,7 @@ class MainActivity : Activity() {
         setBusy("Running ${selected.displayName}")
         Thread {
             try {
-                val result = activeRunner.runImage(imageUri, defaultBoxPrompt(selected))
+                val result = activeRunner.runImage(image, defaultBoxPrompt(selected))
                 showResult(
                     status = "Load: ${result.loadTimeMs} ms | Run: ${result.runTimeMs} ms",
                     output = result.summary,
@@ -354,7 +382,7 @@ class MainActivity : Activity() {
         val selected = selectedConfig()
         val dir = modelDir(selected)
         val modelFile = File(dir, selected.modelFile)
-        val state = if (modelFile.exists()) "found" else "missing"
+        val state = BundledModelInstaller.state(this, selected, dir).label
         statusView.text = """
             Runtime: ${selected.runtime}
             Workload: ${selected.workload}

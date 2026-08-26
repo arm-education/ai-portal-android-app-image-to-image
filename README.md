@@ -2,9 +2,9 @@
 
 This Android application accompanies the Arm Learning Path for running image-to-image models from the Arm AI Portal. It is intended for learning how image-to-image model adapters run on devices and is not a reference production application. It is provided under the [Arm Education End User License Agreement](LICENSE.md).
 
-The visible application flow is MobileSAM-only for the Learning Path. The project is structured as a reusable Android app shell with one validated MobileSAM adapter. Additional models require model-specific adapters for their own input tensors, output tensors, preprocessing, result decoding, and UI controls.
+The visible application flow is MobileSAM-only for the Learning Path. The project is structured as a reusable Android app shell with one validated MobileSAM adapter. Additional models require model-specific adapters for their own input tensors, output tensors, preprocessing, result decoding, and, when the task differs from MobileSAM segmentation, UI controls and output rendering.
 
-The application does not store model binaries in the Android application package (APK) or in this repository. Model files are copied into app-private storage on the device.
+The application does not store real model binaries in this repository. Model files are copied into app-private storage on the device. The repository includes a `MOCK_REPLACE_ME_mobile-sam-int8-executorch.pte` placeholder under `app/src/main/assets/models/mobile-sam-int8-xnnpack-executorch/` to show the optional bundled-model location for local experiments.
 
 ## Application flow
 
@@ -39,7 +39,37 @@ The model catalog entry is stored in `app/src/main/assets/model_catalog.json`. T
 "adapterId": "mobile-sam-executorch"
 ```
 
-`RuntimeRunnerFactory.kt` maps this adapter ID to `ExecuTorchSegmentationAdapter.kt`.
+`RuntimeRunnerFactory.kt` maps this adapter ID to `MobileSamExecuTorchAdapter.kt`.
+
+## Project structure
+
+The app separates reusable infrastructure from model-specific code:
+
+```text
+app/src/main/java/com/arm/learningpath/imagetoimage/
+├── ui/
+├── catalog/
+├── storage/
+├── image/
+└── inference/
+    ├── segmentation/
+    └── models/
+        └── mobilesam/
+```
+
+The reusable shell lives in:
+
+- `ui/` for the Android activity and preview surface.
+- `catalog/` for catalog parsing and model metadata.
+- `storage/` for app-private and optional bundled model handling.
+- `image/` for orientation-aware image decoding and target-size sampling.
+- `inference/` for the runtime adapter interface and factory.
+
+The MobileSAM-specific implementation lives in `inference/models/mobilesam/`:
+
+- `MobileSamExecuTorchAdapter.kt` loads the ExecuTorch module and invokes `forward`.
+- `MobileSamPreprocessor.kt` converts the selected image and fixed box prompt into MobileSAM tensors.
+- `MobileSamPostprocessor.kt` validates MobileSAM outputs, creates the cyan mask overlay, and formats output statistics.
 
 ## Download MobileSAM
 
@@ -144,11 +174,20 @@ In the app:
 
 The app displays the selected mask as a translucent cyan overlay. The result panel displays output statistics including the selected mask, predicted IoU, mask coverage, mask logit range, and timing.
 
+For local experiments, you can alternatively replace the placeholder under `app/src/main/assets/models/mobile-sam-int8-xnnpack-executorch/` with the real `mobile-sam-int8-executorch.pte` file before building the APK. When **Load model** runs, the app copies a real bundled asset into app-private storage. Do not commit real model binaries to this repository.
+
 ## Extend the application
 
-The reusable parts of the app are the Android shell, model catalog loading, app-local model storage, preview surface, and adapter interface. The MobileSAM adapter is model-specific.
+The reusable parts of the app are the Android shell, model catalog loading, app-local or optional bundled model storage, image decoding, preview surface, and adapter interface. The MobileSAM adapter is model-specific.
 
-For another image-to-image model, inspect the model package and add a matching adapter. The helper script can generate local model context for an adapter prompt:
+For another image-to-image model, inspect the model package and add a matching adapter. Updating only `model_catalog.json` is not enough unless a registered adapter already supports that exact model contract. Depending on the model, you may also need to adjust:
+
+- the catalog entry
+- model files and storage layout
+- input controls, such as point prompts, text prompts, sliders, or no prompt
+- output rendering, such as a generated image, depth map, edge map, or segmentation mask
+
+The helper script can generate local model context for an adapter prompt:
 
 ```bash
 python3 scripts/inspect_android_model.py \

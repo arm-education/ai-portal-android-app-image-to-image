@@ -1,4 +1,4 @@
-package com.arm.learningpath.imagetoimage
+package com.arm.learningpath.imagetoimage.catalog
 
 import org.json.JSONArray
 import org.json.JSONObject

@@ -1,4 +1,4 @@
-package com.arm.learningpath.imagetoimage
+package com.arm.learningpath.imagetoimage.catalog
 
 import android.content.Context
 import org.json.JSONArray

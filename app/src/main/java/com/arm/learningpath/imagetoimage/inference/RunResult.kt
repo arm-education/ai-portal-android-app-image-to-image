@@ -1,4 +1,4 @@
-package com.arm.learningpath.imagetoimage
+package com.arm.learningpath.imagetoimage.inference
 
 import android.graphics.Bitmap
 
