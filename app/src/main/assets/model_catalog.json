@@ -1,0 +1,23 @@
+[
+  {
+    "id": "mobile-sam-int8-xnnpack-executorch",
+    "displayName": "MobileSAM INT8 Segmentation",
+    "workload": "image-segmentation",
+    "runtime": "executorch",
+    "artifactType": "file",
+    "artifactPath": "mobile-sam-int8-xnnpack-executorch",
+    "modelFile": "mobile-sam-int8-executorch.pte",
+    "externalDataFiles": [],
+    "adapterId": "mobile-sam-executorch",
+    "inputImageSize": 1024,
+    "outputImageSize": 1024,
+    "colorFormat": "RGB",
+    "normalization": "0_to_1_graph_normalizes",
+    "promptType": "box-corners",
+    "defaultBoxPrompt": [102.4, 102.4, 921.6, 921.6],
+    "inputTensorNames": ["image", "point_coords"],
+    "inputTensorShapes": ["[1,3,1024,1024]", "[1,1,2,2]"],
+    "outputTensorNames": ["low_res_masks", "iou_predictions"],
+    "outputTensorShapes": ["[1,3,256,256]", "[1,3]"]
+  }
+]
