@@ -4,7 +4,7 @@ This Android application accompanies the Arm Learning Path for running image-to-
 
 The visible application flow is MobileSAM-only for the Learning Path. The project is structured as a reusable Android app shell with one validated MobileSAM adapter. Additional models require model-specific adapters for their own input tensors, output tensors, preprocessing, result decoding, and, when the task differs from MobileSAM segmentation, UI controls and output rendering.
 
-The application does not store real model binaries in this repository. Model files are copied into app-private storage on the device. The repository includes a `MOCK_REPLACE_ME_mobile-sam-int8-executorch.pte` placeholder under `app/src/main/assets/models/mobile-sam-int8-xnnpack-executorch/` to show the optional bundled-model location for local experiments.
+The application does not store real model binaries in this repository. Model files are copied into app-private storage on the device. The repository includes a `MOCK_REPLACE_ME_mobile_sam_raspberry_executorch_optimized.pte` placeholder under `app/src/main/assets/models/mobile-sam-int8-xnnpack-executorch/` to show the optional bundled-model location for local experiments.
 
 ## Application flow
 
@@ -31,7 +31,7 @@ The default MobileSAM box prompt covers the center 80 percent of the resized `10
 
 | Model | Runtime | Copy this file |
 | --- | --- | --- |
-| MobileSAM INT8 Segmentation | ExecuTorch with XNNPACK | `mobile-sam-int8-executorch.pte` |
+| MobileSAM INT8 Segmentation | ExecuTorch with XNNPACK | `mobile_sam_raspberry_executorch_optimized.pte` |
 
 The model catalog entry is stored in `app/src/main/assets/model_catalog.json`. The entry uses:
 
@@ -112,7 +112,7 @@ from huggingface_hub import hf_hub_download
 
 path = hf_hub_download(
     repo_id="Arm/mobile-sam-int8-xnnpack-executorch",
-    filename="mobile-sam-int8-executorch.pte",
+    filename="mobile_sam_raspberry_executorch_optimized.pte",
     local_dir="model/mobile-sam-int8-xnnpack-executorch",
 )
 print(path)
@@ -123,7 +123,7 @@ On Windows PowerShell:
 
 ```powershell
 New-Item -ItemType Directory -Force -Path model\mobile-sam-int8-xnnpack-executorch | Out-Null
-.\.hf-venv\Scripts\python.exe -c "from huggingface_hub import hf_hub_download; print(hf_hub_download(repo_id='Arm/mobile-sam-int8-xnnpack-executorch', filename='mobile-sam-int8-executorch.pte', local_dir='model/mobile-sam-int8-xnnpack-executorch'))"
+.\.hf-venv\Scripts\python.exe -c "from huggingface_hub import hf_hub_download; print(hf_hub_download(repo_id='Arm/mobile-sam-int8-xnnpack-executorch', filename='mobile_sam_raspberry_executorch_optimized.pte', local_dir='model/mobile-sam-int8-xnnpack-executorch'))"
 ```
 
 ## Open and run the application
@@ -138,7 +138,7 @@ On macOS or Linux:
 
 ```bash
 MODEL_ID="mobile-sam-int8-xnnpack-executorch"
-MODEL_FILE="mobile-sam-int8-executorch.pte"
+MODEL_FILE="mobile_sam_raspberry_executorch_optimized.pte"
 MODEL_PATH="model/$MODEL_ID/$MODEL_FILE"
 
 adb shell run-as com.arm.learningpath.imagetoimage mkdir -p "files/models/$MODEL_ID"
@@ -153,7 +153,7 @@ On Windows PowerShell:
 
 ```powershell
 $MODEL_ID = "mobile-sam-int8-xnnpack-executorch"
-$MODEL_FILE = "mobile-sam-int8-executorch.pte"
+$MODEL_FILE = "mobile_sam_raspberry_executorch_optimized.pte"
 $MODEL_PATH = "model\$MODEL_ID\$MODEL_FILE"
 
 adb shell run-as com.arm.learningpath.imagetoimage mkdir -p "files/models/$MODEL_ID"
@@ -174,7 +174,7 @@ In the app:
 
 The app displays the selected mask as a translucent cyan overlay. The result panel displays output statistics including the selected mask, predicted IoU, mask coverage, mask logit range, and timing.
 
-For local experiments, you can alternatively replace the placeholder under `app/src/main/assets/models/mobile-sam-int8-xnnpack-executorch/` with the real `mobile-sam-int8-executorch.pte` file before building the APK. When **Load model** runs, the app copies a real bundled asset into app-private storage. Do not commit real model binaries to this repository.
+For local experiments, you can alternatively replace the placeholder under `app/src/main/assets/models/mobile-sam-int8-xnnpack-executorch/` with the real `mobile_sam_raspberry_executorch_optimized.pte` file before building the APK. When **Load model** runs, the app copies a real bundled asset into app-private storage. Do not commit real model binaries to this repository.
 
 ## Extend the application
 

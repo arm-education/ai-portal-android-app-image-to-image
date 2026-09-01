@@ -1,5 +1,5 @@
 This placeholder documents the optional bundled-model location.
 
-Replace this file with mobile-sam-int8-executorch.pte only when you intentionally
+Replace this file with mobile_sam_raspberry_executorch_optimized.pte only when you intentionally
 want to package the model inside the APK for local testing. Do not commit real
 model binaries, Hugging Face tokens, or private model artifacts to this repo.
