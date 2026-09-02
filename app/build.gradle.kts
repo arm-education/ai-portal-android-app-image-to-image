@@ -31,4 +31,7 @@ kotlin {
 
 dependencies {
     implementation("org.pytorch:executorch-android:1.3.1")
+
+    testImplementation("junit:junit:4.13.2")
+    testImplementation("org.json:json:20240303")
 }

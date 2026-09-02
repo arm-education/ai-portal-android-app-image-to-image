@@ -6,7 +6,7 @@
     "runtime": "executorch",
     "artifactType": "file",
     "artifactPath": "mobile-sam-int8-xnnpack-executorch",
-    "modelFile": "mobile-sam-int8-executorch.pte",
+    "modelFile": "mobile_sam_raspberry_executorch_optimized.pte",
     "externalDataFiles": [],
     "adapterId": "mobile-sam-executorch",
     "inputImageSize": 1024,
