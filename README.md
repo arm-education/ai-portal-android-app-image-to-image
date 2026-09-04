@@ -2,9 +2,11 @@
 
 This Android application accompanies the Arm Learning Path for running image-to-image models from the Arm AI Portal. It is intended for learning how image-to-image model adapters run on devices and is not a reference production application. It is provided under the [Arm Education End User License Agreement](LICENSE.md).
 
-The visible application flow is MobileSAM-only for the Learning Path. The project is structured as a reusable Android app shell with one validated MobileSAM adapter. Additional models require model-specific adapters for their own input tensors, output tensors, preprocessing, result decoding, and, when the task differs from MobileSAM segmentation, UI controls and output rendering.
+For the Learning Path, the visible application flow supports only MobileSAM. The project is structured as a reusable Android app shell with one validated MobileSAM adapter. Additional models require model-specific adapters for their input tensors, output tensors, preprocessing, and result decoding. Models that perform tasks other than MobileSAM segmentation also require appropriate UI controls and output rendering.
 
-The application does not store real model binaries in this repository. Model files are copied into app-private storage on the device. The repository includes a `MOCK_REPLACE_ME_mobile_sam_raspberry_executorch_optimized.pte` placeholder under `app/src/main/assets/models/mobile-sam-int8-xnnpack-executorch/` to show the optional bundled-model location for local experiments.
+The repository does not include runnable model binaries. Real model files are copied into app-private storage on the device. The repository includes a `MOCK_REPLACE_ME_mobile_sam_raspberry_executorch_optimized.pte` placeholder under `app/src/main/assets/models/mobile-sam-int8-xnnpack-executorch/` to show the optional bundled-model location for local experiments. Clear the app's storage or uninstall the app to remove app-private model files.
+
+All inference runs on the device. The app declares no network permissions and does not upload the selected image or result. It reads images through Android's system document picker, whose provider may have its own storage and network behavior. The app holds the decoded image and generated mask overlay in memory and does not save the result.
 
 ## Application flow
 
@@ -18,14 +20,16 @@ The application opens with:
 - a status/result panel
 - a cyan mask overlay and output statistics after inference
 
-The default MobileSAM box prompt covers the center 80 percent of the resized `1024 x 1024` image. The prompt is fixed to make the validated Learning Path run repeatable.
+The default MobileSAM box prompt spans the central 80 percent of both the width and height of the resized `1024 x 1024` image. The fixed prompt keeps the box coordinates consistent across runs.
 
 ## Requirements
 
-- Android Studio with Android SDK 35
+- Android Studio Narwhal 3 Feature Drop (2025.1.3) or a newer compatible release, with Android SDK 35
+- Android SDK Platform Tools, with `adb` available on your `PATH`
 - Java 17, supplied by Android Studio or available on your `PATH`
-- An Arm64 Android device running Android 9, API 28, or later
-- The MobileSAM ExecuTorch model file downloaded from Hugging Face
+- Python 3 with `venv` and `pip`; the commands below use `python3` on macOS and Linux and `py` on Windows
+- An Arm64 Android device running Android 9 (API level 28) or later
+- Access to the MobileSAM ExecuTorch model file on Hugging Face
 
 ## Supported launch model
 
@@ -71,7 +75,9 @@ The MobileSAM-specific implementation lives in `inference/models/mobilesam/`:
 - `MobileSamPreprocessor.kt` converts the selected image and fixed box prompt into MobileSAM tensors.
 - `MobileSamPostprocessor.kt` validates MobileSAM outputs, creates the cyan mask overlay, and formats output statistics.
 
-## Download MobileSAM
+`LiteRtImageToImageAdapter.kt` and `OnnxImageToImageAdapter.kt` are incomplete extension placeholders. They do not include the required runtime dependencies or implement model loading and inference.
+
+## Download the MobileSAM model
 
 Create a Python virtual environment and install the Hugging Face Hub package.
 
@@ -147,6 +153,7 @@ adb shell run-as com.arm.learningpath.imagetoimage \
   cp "/data/local/tmp/$MODEL_FILE" "files/models/$MODEL_ID/$MODEL_FILE"
 adb shell run-as com.arm.learningpath.imagetoimage \
   ls -l "files/models/$MODEL_ID/$MODEL_FILE"
+adb shell rm "/data/local/tmp/$MODEL_FILE"
 ```
 
 On Windows PowerShell:
@@ -162,7 +169,10 @@ adb shell run-as com.arm.learningpath.imagetoimage `
   cp "/data/local/tmp/$MODEL_FILE" "files/models/$MODEL_ID/$MODEL_FILE"
 adb shell run-as com.arm.learningpath.imagetoimage `
   ls -l "files/models/$MODEL_ID/$MODEL_FILE"
+adb shell rm "/data/local/tmp/$MODEL_FILE"
 ```
+
+The final `adb shell rm` command deletes only the temporary device copy. The downloaded source file remains under `model/` on your development computer.
 
 In the app:
 
@@ -172,9 +182,9 @@ In the app:
 4. Confirm that the dashed prompt box is visible over the image.
 5. Select **Run segmentation**.
 
-The app displays the selected mask as a translucent cyan overlay. The result panel displays output statistics including the selected mask, predicted IoU, mask coverage, mask logit range, and timing.
+The app displays the selected mask as a translucent cyan overlay. The status panel displays model load and run times. The result panel displays the selected mask, predicted IoU, low-resolution mask coverage, and mask logit range.
 
-For local experiments, you can alternatively replace the placeholder under `app/src/main/assets/models/mobile-sam-int8-xnnpack-executorch/` with the real `mobile_sam_raspberry_executorch_optimized.pte` file before building the APK. When **Load model** runs, the app copies a real bundled asset into app-private storage. Do not commit real model binaries to this repository.
+For local experiments, you can alternatively replace the placeholder under `app/src/main/assets/models/mobile-sam-int8-xnnpack-executorch/` with the real `mobile_sam_raspberry_executorch_optimized.pte` file before building the APK. When **Load model** runs and no app-private model file exists, the app copies a real bundled asset into app-private storage. App-private model files persist across normal app updates, so clear the app's storage or remove the existing file before testing a replacement. Do not commit real model binaries to this repository.
 
 ## Extend the application
 
@@ -184,6 +194,7 @@ For another image-to-image model, inspect the model package and add a matching a
 
 - the catalog entry
 - model files and storage layout
+- model-selection UI and state when exposing more than one catalog entry
 - input controls, such as point prompts, text prompts, sliders, or no prompt
 - output rendering, such as a generated image, depth map, edge map, or segmentation mask
 
@@ -206,7 +217,7 @@ The script writes:
 
 Generated adapter code, Gradle dependencies, layouts, resources, and runtime dependencies must be compiled into a new APK and tested on an Arm64 Android device.
 
-Do not add Hugging Face tokens, Arm AI Portal credentials, long-lived artifact credentials, or model binaries to this repository.
+Do not add the `.hf-venv/` virtual environment, Hugging Face tokens, Arm AI Portal credentials, long-lived artifact credentials, or model binaries to this repository.
 
 ## License
 
