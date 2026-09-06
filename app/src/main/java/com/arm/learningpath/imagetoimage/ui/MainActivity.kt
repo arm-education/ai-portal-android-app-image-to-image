@@ -99,7 +99,7 @@ class MainActivity : Activity() {
         applySystemInsets(root, basePadding)
 
         root.addView(TextView(this).apply {
-            text = "Photo Insight"
+            text = "MobileSAM Segmentation"
             textSize = 22f
             setTextColor(colorTextPrimary)
             setTypeface(typeface, Typeface.BOLD)

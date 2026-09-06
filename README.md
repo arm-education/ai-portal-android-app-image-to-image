@@ -1,6 +1,6 @@
-# Photo Insight Android application
+# MobileSAM Segmentation Android application
 
-This Android application accompanies the Arm Learning Path for running image-to-image models from the Arm AI Portal. It is intended for learning how image-to-image model adapters run on devices and is not a reference production application.
+This MobileSAM segmentation Android application accompanies the Arm Learning Path for running image-to-image models from the Arm AI Portal. It is intended for learning how image-to-image model adapters run on devices and is not a reference production application.
 
 For the Learning Path, the visible application flow supports only MobileSAM. The project is structured as a reusable Android app shell with one validated MobileSAM adapter. Additional models require model-specific adapters for their input tensors, output tensors, preprocessing, and result decoding. Models that perform tasks other than MobileSAM segmentation also require appropriate UI controls and output rendering.
 
