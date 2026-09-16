@@ -1,24 +1,24 @@
-# MobileSAM Segmentation Android application
+# Arm AI Portal image analysis Android application
 
-This MobileSAM segmentation Android application accompanies the Arm Learning Path for running image-to-image models from the Arm AI Portal. It is intended for learning how image-to-image model adapters run on devices and is not a reference production application.
+This Android application accompanies Arm Learning Paths for running image models from the Arm AI Portal. It is intended for learning how model-specific adapters run on devices and is not a reference production application.
 
-For the Learning Path, the visible application flow supports only MobileSAM. The project is structured as a reusable Android app shell with one validated MobileSAM adapter. Additional models require model-specific adapters for their input tensors, output tensors, preprocessing, and result decoding. Models that perform tasks other than MobileSAM segmentation also require appropriate UI controls and output rendering.
+The application supports MobileSAM segmentation and Depth Anything V2 Small depth estimation. Each model has a dedicated adapter for its tensor contract, preprocessing, and result decoding.
 
-The repository does not include runnable model binaries. Real model files are copied into app-private storage on the device. The repository includes a `MOCK_REPLACE_ME_mobile_sam_raspberry_executorch_optimized.pte` placeholder under `app/src/main/assets/models/mobile-sam-int8-xnnpack-executorch/` to show the optional bundled-model location for local experiments. Clear the app's storage or uninstall the app to remove app-private model files.
+The repository does not include runnable model binaries. Real model files are copied into app-private storage on the device. Each model directory contains a `MOCK_REPLACE_ME_...` text placeholder that explains the optional bundled-model location for local experiments. Clear the app's storage or uninstall the app to remove app-private model files.
 
-All inference runs on the device. The app declares no network permissions and does not upload the selected image or result. It reads images through Android's system document picker, whose provider may have its own storage and network behavior. The app holds the decoded image and generated mask overlay in memory and does not save the result.
+All inference runs on the device. The app declares no network permissions and does not upload the selected image or result. It reads images through Android's system document picker, whose provider may have its own storage and network behavior. The app holds the decoded image and generated result in memory and does not save it.
 
 ## Application flow
 
 The application opens with:
 
-- a MobileSAM model dropdown showing **MobileSAM INT8 Segmentation**
+- a model dropdown for MobileSAM and Depth Anything V2 Small
 - a **Load model** button
 - a **Choose image** button
 - an image preview/result area that shows **No image selected** before an image is chosen
-- a **Run segmentation** button
+- a workload-aware **Run segmentation** or **Run depth estimation** button
 - a status/result panel
-- a cyan mask overlay and output statistics after inference
+- a cyan mask overlay or grayscale relative-disparity map after inference
 
 The default MobileSAM box prompt spans the central 80 percent of both the width and height of the resized `1024 x 1024` image. The fixed prompt keeps the box coordinates consistent across runs.
 
@@ -29,21 +29,18 @@ The default MobileSAM box prompt spans the central 80 percent of both the width 
 - Java 17, supplied by Android Studio or available on your `PATH`
 - Python 3 with `venv` and `pip`; the commands below use `python3` on macOS and Linux and `py` on Windows
 - An Arm64 Android device running Android 9 (API level 28) or later
-- Access to the MobileSAM ExecuTorch model file on Hugging Face
+- Access to the selected ExecuTorch model file on Hugging Face
 
-## Supported launch model
+## Supported models
 
 | Model | Runtime | Copy this file |
 | --- | --- | --- |
 | MobileSAM INT8 Segmentation | ExecuTorch with XNNPACK | `mobile_sam_raspberry_executorch_optimized.pte` |
+| Depth Anything V2 Small INT8 | ExecuTorch with XNNPACK | `depth_anything_v2_small_executorch_optimized.pte` |
 
-The model catalog entry is stored in `app/src/main/assets/model_catalog.json`. The entry uses:
+The model catalog entries are stored in `app/src/main/assets/model_catalog.json`. The model-specific adapter IDs are `mobile-sam-executorch` and `depth-anything-v2-executorch`.
 
-```json
-"adapterId": "mobile-sam-executorch"
-```
-
-`RuntimeRunnerFactory.kt` maps this adapter ID to `MobileSamExecuTorchAdapter.kt`.
+`RuntimeRunnerFactory.kt` maps each ID to its dedicated adapter.
 
 ## Project structure
 
@@ -58,6 +55,7 @@ app/src/main/java/com/arm/learningpath/imagetoimage/
 └── inference/
     ├── segmentation/
     └── models/
+        ├── depthanything/
         └── mobilesam/
 ```
 
@@ -74,6 +72,8 @@ The MobileSAM-specific implementation lives in `inference/models/mobilesam/`:
 - `MobileSamExecuTorchAdapter.kt` loads the ExecuTorch module and invokes `forward`.
 - `MobileSamPreprocessor.kt` converts the selected image and fixed box prompt into MobileSAM tensors.
 - `MobileSamPostprocessor.kt` validates MobileSAM outputs, creates the cyan mask overlay, and formats output statistics.
+
+The Depth Anything implementation lives in `inference/models/depthanything/`. It resizes RGB input to `686 x 518`, applies ImageNet normalization, validates the `[1, 518, 686]` relative-disparity output, and renders a grayscale map where white represents nearer regions.
 
 `LiteRtImageToImageAdapter.kt` and `OnnxImageToImageAdapter.kt` are incomplete extension placeholders. They do not include the required runtime dependencies or implement model loading and inference.
 
@@ -188,7 +188,7 @@ For local experiments, you can alternatively replace the placeholder under `app/
 
 ## Extend the application
 
-The reusable parts of the app are the Android shell, model catalog loading, app-local or optional bundled model storage, image decoding, preview surface, and adapter interface. The MobileSAM adapter is model-specific.
+The reusable parts of the app are the Android shell, model catalog loading, app-local or optional bundled model storage, image decoding, preview surface, and adapter interface. The MobileSAM and Depth Anything adapters are model-specific.
 
 For another image-to-image model, inspect the model package and add a matching adapter. Updating only `model_catalog.json` is not enough unless a registered adapter already supports that exact model contract. Depending on the model, you may also need to adjust:
 
