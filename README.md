@@ -77,7 +77,7 @@ The Depth Anything implementation lives in `inference/models/depthanything/`. It
 
 `LiteRtImageToImageAdapter.kt` and `OnnxImageToImageAdapter.kt` are incomplete extension placeholders. They do not include the required runtime dependencies or implement model loading and inference.
 
-## Download the MobileSAM model
+## Download a model
 
 Create a Python virtual environment and install the Hugging Face Hub package.
 
@@ -107,7 +107,9 @@ On Windows PowerShell:
 .\.hf-venv\Scripts\hf.exe auth login
 ```
 
-Download the model file into a local model directory.
+### Download MobileSAM
+
+Download the MobileSAM model file into a local model directory.
 
 On macOS or Linux:
 
@@ -132,13 +134,40 @@ New-Item -ItemType Directory -Force -Path model\mobile-sam-int8-xnnpack-executor
 .\.hf-venv\Scripts\python.exe -c "from huggingface_hub import hf_hub_download; print(hf_hub_download(repo_id='Arm/mobile-sam-int8-xnnpack-executorch', filename='mobile_sam_raspberry_executorch_optimized.pte', local_dir='model/mobile-sam-int8-xnnpack-executorch'))"
 ```
 
+### Download Depth Anything V2 Small
+
+Download the exact Arm-optimized Depth Anything V2 Small artifact.
+
+On macOS or Linux:
+
+```bash
+MODEL_ID="depth-anything-v2-small-int8-xnnpack-executorch-vivo-x300"
+MODEL_FILE="depth_anything_v2_small_executorch_optimized.pte"
+mkdir -p "model/$MODEL_ID"
+.hf-venv/bin/hf download "Arm/$MODEL_ID" "$MODEL_FILE" \
+  --local-dir "model/$MODEL_ID"
+```
+
+On Windows PowerShell:
+
+```powershell
+$MODEL_ID = "depth-anything-v2-small-int8-xnnpack-executorch-vivo-x300"
+$MODEL_FILE = "depth_anything_v2_small_executorch_optimized.pte"
+$MODEL_DIR = "model\$MODEL_ID"
+New-Item -ItemType Directory -Force -Path $MODEL_DIR | Out-Null
+.\.hf-venv\Scripts\hf.exe download "Arm/$MODEL_ID" $MODEL_FILE `
+  --local-dir $MODEL_DIR
+```
+
 ## Open and run the application
 
 Clone or download this repository, then open the repository root in Android Studio.
 
 Connect an Arm64 Android phone or start an Arm64 emulator. Wait for Gradle sync to finish, select the `app` configuration, and run it once so Android creates the app-private directory.
 
-Copy the downloaded model into app-private storage.
+### Copy and run MobileSAM
+
+Copy the downloaded MobileSAM model into app-private storage.
 
 On macOS or Linux:
 
@@ -176,15 +205,63 @@ The final `adb shell rm` command deletes only the temporary device copy. The dow
 
 In the app:
 
-1. Select **Load model**.
-2. Select **Choose image** or tap the preview area.
-3. Choose a JPEG or PNG image.
-4. Confirm that the dashed prompt box is visible over the image.
-5. Select **Run segmentation**.
+1. Select **MobileSAM INT8 Segmentation** from the model menu.
+2. Select **Load model**.
+3. Select **Choose image** or tap the preview area.
+4. Choose a JPEG or PNG image.
+5. Confirm that the dashed prompt box is visible over the image.
+6. Select **Run segmentation**.
 
 The app displays the selected mask as a translucent cyan overlay. The status panel displays model load and run times. The result panel displays the selected mask, predicted IoU, low-resolution mask coverage, and mask logit range.
 
 For local experiments, you can alternatively replace the placeholder under `app/src/main/assets/models/mobile-sam-int8-xnnpack-executorch/` with the real `mobile_sam_raspberry_executorch_optimized.pte` file before building the APK. When **Load model** runs and no app-private model file exists, the app copies a real bundled asset into app-private storage. App-private model files persist across normal app updates, so clear the app's storage or remove the existing file before testing a replacement. Do not commit real model binaries to this repository.
+
+### Copy and run Depth Anything V2 Small
+
+Copy the downloaded Depth Anything model into app-private storage.
+
+On macOS or Linux:
+
+```bash
+MODEL_ID="depth-anything-v2-small-int8-xnnpack-executorch-vivo-x300"
+MODEL_FILE="depth_anything_v2_small_executorch_optimized.pte"
+MODEL_PATH="model/$MODEL_ID/$MODEL_FILE"
+
+adb shell run-as com.arm.learningpath.imagetoimage mkdir -p "files/models/$MODEL_ID"
+adb push "$MODEL_PATH" "/data/local/tmp/$MODEL_FILE"
+adb shell run-as com.arm.learningpath.imagetoimage \
+  cp "/data/local/tmp/$MODEL_FILE" "files/models/$MODEL_ID/$MODEL_FILE"
+adb shell run-as com.arm.learningpath.imagetoimage \
+  ls -l "files/models/$MODEL_ID/$MODEL_FILE"
+adb shell rm "/data/local/tmp/$MODEL_FILE"
+```
+
+On Windows PowerShell:
+
+```powershell
+$MODEL_ID = "depth-anything-v2-small-int8-xnnpack-executorch-vivo-x300"
+$MODEL_FILE = "depth_anything_v2_small_executorch_optimized.pte"
+$MODEL_PATH = "model\$MODEL_ID\$MODEL_FILE"
+
+adb shell run-as com.arm.learningpath.imagetoimage mkdir -p "files/models/$MODEL_ID"
+adb push $MODEL_PATH "/data/local/tmp/$MODEL_FILE"
+adb shell run-as com.arm.learningpath.imagetoimage `
+  cp "/data/local/tmp/$MODEL_FILE" "files/models/$MODEL_ID/$MODEL_FILE"
+adb shell run-as com.arm.learningpath.imagetoimage `
+  ls -l "files/models/$MODEL_ID/$MODEL_FILE"
+adb shell rm "/data/local/tmp/$MODEL_FILE"
+```
+
+In the app:
+
+1. Select **Depth Anything V2 Small INT8** from the model menu.
+2. Select **Load model**.
+3. Select **Choose image** and choose a JPEG or PNG scene.
+4. Select **Run depth estimation**.
+
+The app displays a grayscale relative-disparity map where white represents nearer regions and black represents farther regions. The result panel reports the disparity range, and the status panel reports model load and run times.
+
+For local experiments, you can alternatively replace the placeholder under `app/src/main/assets/models/depth-anything-v2-small-int8-xnnpack-executorch-vivo-x300/` with the real `depth_anything_v2_small_executorch_optimized.pte` file before building the APK. Do not commit real model binaries to this repository.
 
 ## Extend the application
 
