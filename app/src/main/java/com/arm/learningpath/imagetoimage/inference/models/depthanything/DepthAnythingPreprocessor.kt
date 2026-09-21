@@ -34,8 +34,12 @@ object DepthAnythingPreprocessor {
                 tensorData,
                 longArrayOf(1, 3, targetHeight.toLong(), targetWidth.toLong()),
             ),
-            sourceWidth = image.sourceWidth,
-            sourceHeight = image.sourceHeight,
+            dimensions = DepthAnythingImageDimensions(
+                sourceWidth = image.sourceWidth,
+                sourceHeight = image.sourceHeight,
+                decodedWidth = image.bitmap.width,
+                decodedHeight = image.bitmap.height,
+            ),
         )
     }
 

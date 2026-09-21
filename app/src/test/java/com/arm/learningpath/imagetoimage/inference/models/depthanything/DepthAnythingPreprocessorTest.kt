@@ -45,4 +45,17 @@ class DepthAnythingPreprocessorTest {
 
         assertEquals(3 * 4 * 3, result.size)
     }
+
+    @Test
+    fun resultRenderingUsesTheBoundedDecodedImageDimensions() {
+        val dimensions = DepthAnythingImageDimensions(
+            sourceWidth = 12_000,
+            sourceHeight = 9_000,
+            decodedWidth = 667,
+            decodedHeight = 500,
+        )
+
+        assertEquals(667, dimensions.renderWidth)
+        assertEquals(500, dimensions.renderHeight)
+    }
 }

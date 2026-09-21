@@ -37,9 +37,12 @@ class MainActivity : Activity() {
     private val colorBorder = Color.rgb(190, 217, 219)
 
     private lateinit var catalog: List<ModelConfig>
+    private lateinit var modelSelectorView: View
     private lateinit var modelDropdownView: TextView
     private lateinit var imagePreview: SegmentationPreviewView
     private lateinit var promptInfoView: TextView
+    private lateinit var loadButton: Button
+    private lateinit var chooseImageButton: Button
     private lateinit var runButton: Button
     private lateinit var statusView: TextView
     private lateinit var outputView: TextView
@@ -83,6 +86,7 @@ class MainActivity : Activity() {
                     configurePromptUi(selected)
                     statusView.text = "Selected image decoded"
                     outputView.text = "Selected image: $uri"
+                    setControlsEnabled(true)
                 }
             } catch (error: Throwable) {
                 showError("Image decode failed", error)
@@ -146,19 +150,22 @@ class MainActivity : Activity() {
             ))
             setOnClickListener { showModelDropdown(this) }
         }
+        modelSelectorView = modelFrame
         root.addView(modelFrame, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(52)).apply {
             bottomMargin = dp(12)
         })
 
-        root.addView(createActionButton("Load model", filled = false).apply {
+        loadButton = createActionButton("Load model", filled = false).apply {
             setOnClickListener { loadSelectedModel() }
-        }, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(52)).apply {
+        }
+        root.addView(loadButton, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(52)).apply {
             bottomMargin = dp(10)
         })
 
-        root.addView(createActionButton("Choose image", filled = false).apply {
+        chooseImageButton = createActionButton("Choose image", filled = false).apply {
             setOnClickListener { chooseImage() }
-        }, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(52)).apply {
+        }
+        root.addView(chooseImageButton, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(52)).apply {
             bottomMargin = dp(12)
         })
 
@@ -445,6 +452,7 @@ class MainActivity : Activity() {
 
     private fun setBusy(message: String) {
         runOnUiThread {
+            setControlsEnabled(false)
             statusView.text = message
             outputView.text = "Working..."
         }
@@ -459,6 +467,7 @@ class MainActivity : Activity() {
             }
             statusView.text = status
             outputView.text = output
+            setControlsEnabled(true)
         }
     }
 
@@ -466,7 +475,16 @@ class MainActivity : Activity() {
         runOnUiThread {
             statusView.text = title
             outputView.text = error.message ?: error.toString()
+            setControlsEnabled(true)
         }
+    }
+
+    private fun setControlsEnabled(enabled: Boolean) {
+        modelSelectorView.isEnabled = enabled
+        loadButton.isEnabled = enabled
+        chooseImageButton.isEnabled = enabled
+        imagePreview.isEnabled = enabled
+        runButton.isEnabled = enabled
     }
 
     private fun dp(value: Int): Int {

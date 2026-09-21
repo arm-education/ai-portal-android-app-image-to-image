@@ -28,8 +28,7 @@ object DepthAnythingPostprocessor {
             outputTensor.getDataAsFloatArray(),
             outputWidth,
             outputHeight,
-            input.sourceWidth,
-            input.sourceHeight,
+            input.dimensions,
         )
     }
 
@@ -37,8 +36,7 @@ object DepthAnythingPostprocessor {
         disparity: FloatArray,
         outputWidth: Int,
         outputHeight: Int,
-        sourceWidth: Int,
-        sourceHeight: Int,
+        dimensions: DepthAnythingImageDimensions,
     ): DepthAnythingOutput {
         val normalized = normalizeToGrayscale(disparity, outputWidth, outputHeight)
         val pixels = IntArray(normalized.values.size) { index ->
@@ -51,16 +49,23 @@ object DepthAnythingPostprocessor {
             outputHeight,
             Bitmap.Config.ARGB_8888,
         )
-        val resultBitmap = if (sourceWidth == outputWidth && sourceHeight == outputHeight) {
+        val resultBitmap = if (
+            dimensions.renderWidth == outputWidth && dimensions.renderHeight == outputHeight
+        ) {
             modelBitmap
         } else {
-            Bitmap.createScaledBitmap(modelBitmap, sourceWidth, sourceHeight, true).also {
+            Bitmap.createScaledBitmap(
+                modelBitmap,
+                dimensions.renderWidth,
+                dimensions.renderHeight,
+                true,
+            ).also {
                 modelBitmap.recycle()
             }
         }
         val summary = buildString {
             appendLine("Depth Anything V2 inference complete.")
-            appendLine("Original image: $sourceWidth x $sourceHeight")
+            appendLine("Original image: ${dimensions.sourceWidth} x ${dimensions.sourceHeight}")
             appendLine("Model input and output: $outputWidth x $outputHeight")
             appendLine(
                 String.format(
