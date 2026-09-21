@@ -104,7 +104,7 @@ class MainActivity : Activity() {
         applySystemInsets(root, basePadding)
 
         root.addView(TextView(this).apply {
-            text = "Arm AI Portal Image Analysis"
+            text = "Image Analysis"
             textSize = 22f
             setTextColor(colorTextPrimary)
             setTypeface(typeface, Typeface.BOLD)
