@@ -11,6 +11,7 @@ import android.os.Build
 import android.os.Bundle
 import android.view.Gravity
 import android.view.View
+import android.view.ViewGroup
 import android.view.WindowInsets
 import android.widget.Button
 import android.widget.FrameLayout
@@ -39,6 +40,7 @@ class MainActivity : Activity() {
     private lateinit var modelDropdownView: TextView
     private lateinit var imagePreview: SegmentationPreviewView
     private lateinit var promptInfoView: TextView
+    private lateinit var runButton: Button
     private lateinit var statusView: TextView
     private lateinit var outputView: TextView
     private var runner: RuntimeRunner? = null
@@ -74,12 +76,11 @@ class MainActivity : Activity() {
         setBusy("Decoding selected image")
         Thread {
             try {
-                val decoded = ImageLoader.decode(this, uri, selected.inputImageSize)
+                val decoded = ImageLoader.decode(this, uri, inputTargetSize(selected))
                 selectedImage = decoded
                 runOnUiThread {
                     imagePreview.setBitmap(decoded.bitmap)
-                    imagePreview.setPromptBox(defaultBoxPrompt(selected), selected.inputImageSize)
-                    promptInfoView.text = "Prompt box: center 80% of the image"
+                    configurePromptUi(selected)
                     statusView.text = "Selected image decoded"
                     outputView.text = "Selected image: $uri"
                 }
@@ -99,14 +100,14 @@ class MainActivity : Activity() {
         applySystemInsets(root, basePadding)
 
         root.addView(TextView(this).apply {
-            text = "MobileSAM Segmentation"
+            text = "Arm AI Portal Image Analysis"
             textSize = 22f
             setTextColor(colorTextPrimary)
             setTypeface(typeface, Typeface.BOLD)
         })
 
         root.addView(TextView(this).apply {
-            text = "Run MobileSAM locally with a reusable Android app shell and a validated adapter."
+            text = "Run validated Arm AI Portal models locally with model-specific Android adapters."
             textSize = 14f
             setTextColor(colorTextSecondary)
             setPadding(0, dp(6), 0, dp(16))
@@ -163,7 +164,7 @@ class MainActivity : Activity() {
 
         imagePreview = SegmentationPreviewView(this).apply {
             background = roundedBackground(fillColor = colorSurface, strokeColor = colorBorder)
-            setPromptBox(defaultBoxPrompt(selectedConfig()), selectedConfig().inputImageSize)
+            setPromptBox(defaultBoxPrompt(selectedConfig()), selectedConfig().inputImageSize ?: 1024)
             isClickable = true
             isFocusable = true
             contentDescription = "Image preview. Tap to choose an image."
@@ -181,9 +182,10 @@ class MainActivity : Activity() {
         }
         root.addView(promptInfoView)
 
-        root.addView(createActionButton("Run segmentation", filled = true).apply {
+        runButton = createActionButton(ModelUiPolicy.runActionLabel(selectedConfig()), filled = true).apply {
             setOnClickListener { runSelectedModel() }
-        }, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(52)).apply {
+        }
+        root.addView(runButton, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(52)).apply {
             bottomMargin = dp(12)
         })
 
@@ -215,21 +217,28 @@ class MainActivity : Activity() {
 
     private fun showModelDropdown(anchor: View) {
         modelDropdownPopup?.dismiss()
-        val selected = selectedConfig()
-        val row = TextView(this).apply {
-            text = selected.displayName
-            textSize = 15f
-            setTextColor(colorTextPrimary)
-            gravity = Gravity.CENTER_VERTICAL
-            setPadding(dp(14), 0, dp(14), 0)
+        val rows = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
             background = roundedBackground(fillColor = colorSurface, strokeColor = colorBorder)
-            minHeight = dp(52)
-            setOnClickListener { modelDropdownPopup?.dismiss() }
+        }
+        catalog.forEachIndexed { index, config ->
+            rows.addView(TextView(this).apply {
+                text = config.displayName
+                textSize = 15f
+                setTextColor(colorTextPrimary)
+                gravity = Gravity.CENTER_VERTICAL
+                setPadding(dp(14), 0, dp(14), 0)
+                minHeight = dp(52)
+                setOnClickListener {
+                    selectModel(index)
+                    modelDropdownPopup?.dismiss()
+                }
+            })
         }
         val popup = PopupWindow(
-            row,
+            rows,
             anchor.width,
-            dp(56),
+            ViewGroup.LayoutParams.WRAP_CONTENT,
             true,
         ).apply {
             isOutsideTouchable = true
@@ -358,10 +367,14 @@ class MainActivity : Activity() {
     }
 
     private fun defaultBoxPrompt(config: ModelConfig): FloatArray {
-        if (config.defaultBoxPrompt.size == 4) {
-            return config.defaultBoxPrompt.toFloatArray()
+        if (config.promptType == "none") {
+            return floatArrayOf()
         }
-        val size = if (config.inputImageSize > 0) config.inputImageSize.toFloat() else 1024f
+        val defaultPrompt = config.defaultBoxPrompt
+        if (defaultPrompt?.size == 4) {
+            return defaultPrompt.toFloatArray()
+        }
+        val size = config.inputImageSize?.toFloat() ?: 1024f
         val margin = size * 0.10f
         return floatArrayOf(margin, margin, size - margin, size - margin)
     }
@@ -392,6 +405,44 @@ class MainActivity : Activity() {
         """.trimIndent()
     }
 
+    private fun selectModel(index: Int) {
+        if (index == selectedModelIndex) {
+            return
+        }
+        runner?.close()
+        runner = null
+        loadedConfig = null
+        selectedImage = null
+        selectedImageUri = null
+        selectedModelIndex = index
+        val selected = selectedConfig()
+        modelDropdownView.text = selected.displayName
+        (modelDropdownView.parent as? View)?.contentDescription = "Model: ${selected.displayName}"
+        imagePreview.clear()
+        configurePromptUi(selected)
+        runButton.text = ModelUiPolicy.runActionLabel(selected)
+        updateSelectedModelStatus()
+        outputView.text = "Choose an image and load ${selected.displayName}."
+    }
+
+    private fun configurePromptUi(config: ModelConfig) {
+        val hasBoxPrompt = ModelUiPolicy.showsBoxPrompt(config)
+        imagePreview.setPromptVisible(hasBoxPrompt)
+        if (hasBoxPrompt) {
+            imagePreview.setPromptBox(defaultBoxPrompt(config), config.inputImageSize ?: 1024)
+            promptInfoView.visibility = View.VISIBLE
+            promptInfoView.text = "Prompt box: center 80% of the image"
+        } else {
+            promptInfoView.visibility = View.GONE
+        }
+    }
+
+    private fun inputTargetSize(config: ModelConfig): Int {
+        val width = config.inputImageWidth ?: requireNotNull(config.inputImageSize)
+        val height = config.inputImageHeight ?: requireNotNull(config.inputImageSize)
+        return maxOf(width, height)
+    }
+
     private fun setBusy(message: String) {
         runOnUiThread {
             statusView.text = message
@@ -403,7 +454,8 @@ class MainActivity : Activity() {
         runOnUiThread {
             resultBitmap?.let {
                 imagePreview.setResultBitmap(it)
-                promptInfoView.text = "Segmentation mask shown in cyan"
+                promptInfoView.visibility = View.VISIBLE
+                promptInfoView.text = ModelUiPolicy.resultDescription(selectedConfig())
             }
             statusView.text = status
             outputView.text = output

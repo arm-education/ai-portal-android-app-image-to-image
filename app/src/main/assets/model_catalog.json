@@ -19,5 +19,27 @@
     "inputTensorShapes": ["[1,3,1024,1024]", "[1,1,2,2]"],
     "outputTensorNames": ["low_res_masks", "iou_predictions"],
     "outputTensorShapes": ["[1,3,256,256]", "[1,3]"]
+  },
+  {
+    "id": "depth-anything-v2-small-int8-xnnpack-executorch-vivo-x300",
+    "displayName": "Depth Anything V2 Small INT8",
+    "workload": "depth-estimation",
+    "runtime": "executorch",
+    "artifactType": "file",
+    "artifactPath": "depth-anything-v2-small-int8-xnnpack-executorch-vivo-x300",
+    "modelFile": "depth_anything_v2_small_executorch_optimized.pte",
+    "externalDataFiles": [],
+    "adapterId": "depth-anything-v2-executorch",
+    "inputImageWidth": 686,
+    "inputImageHeight": 518,
+    "outputImageWidth": 686,
+    "outputImageHeight": 518,
+    "colorFormat": "RGB",
+    "normalization": "imagenet_mean_std",
+    "promptType": "none",
+    "inputTensorNames": ["image"],
+    "inputTensorShapes": ["[1,3,518,686]"],
+    "outputTensorNames": ["relative_disparity"],
+    "outputTensorShapes": ["[1,518,686]"]
   }
 ]

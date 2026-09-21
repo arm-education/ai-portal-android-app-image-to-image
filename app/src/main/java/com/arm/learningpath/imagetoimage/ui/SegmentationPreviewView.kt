@@ -27,9 +27,16 @@ class SegmentationPreviewView(context: Context) : View(context) {
     private var maskOverlay: Bitmap? = null
     private var promptBox: FloatArray = floatArrayOf(102.4f, 102.4f, 921.6f, 921.6f)
     private var promptInputSize: Int = 1024
+    private var showPrompt: Boolean = true
 
     fun setBitmap(image: Bitmap) {
         bitmap = image
+        maskOverlay = null
+        invalidate()
+    }
+
+    fun clear() {
+        bitmap = null
         maskOverlay = null
         invalidate()
     }
@@ -47,6 +54,11 @@ class SegmentationPreviewView(context: Context) : View(context) {
         }
     }
 
+    fun setPromptVisible(visible: Boolean) {
+        showPrompt = visible
+        invalidate()
+    }
+
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
         val activeBitmap = bitmap
@@ -58,7 +70,7 @@ class SegmentationPreviewView(context: Context) : View(context) {
         val destination = imageDestination(activeBitmap)
         canvas.drawBitmap(activeBitmap, null, destination, imagePaint)
         maskOverlay?.let { canvas.drawBitmap(it, null, destination, imagePaint) }
-        if (maskOverlay == null) {
+        if (maskOverlay == null && showPrompt) {
             drawPromptBox(canvas, destination)
         }
     }

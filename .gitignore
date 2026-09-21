@@ -15,6 +15,7 @@ model-context/
 *.aar
 *.pte
 !app/src/main/assets/models/mobile-sam-int8-xnnpack-executorch/MOCK_REPLACE_ME_mobile_sam_raspberry_executorch_optimized.pte
+!app/src/main/assets/models/depth-anything-v2-small-int8-xnnpack-executorch-vivo-x300/MOCK_REPLACE_ME_depth_anything_v2_small_executorch_optimized.pte
 *.tflite
 *.litertlm
 *.onnx
