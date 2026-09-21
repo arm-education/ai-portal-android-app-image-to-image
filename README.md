@@ -26,7 +26,7 @@ The default MobileSAM box prompt spans the central 80 percent of both the width 
 
 - Android Studio Narwhal 3 Feature Drop (2025.1.3) or a newer compatible release, with Android SDK 35
 - Android SDK Platform Tools, with `adb` available on your `PATH`
-- Java 17, supplied by Android Studio or available on your `PATH`
+- Java 17 or later, supplied by Android Studio or available on your `PATH`; Gradle automatically provisions the JDK 17 build toolchain
 - Python 3 with `venv` and `pip`; the commands below use `python3` on macOS and Linux and `py` on Windows
 - An Arm64 Android device running Android 9 (API level 28) or later
 - Access to the selected ExecuTorch model file on Hugging Face
