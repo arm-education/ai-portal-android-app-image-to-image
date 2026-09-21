@@ -1,4 +1,4 @@
-# Arm AI Portal image analysis Android application
+# Image Analysis Android application
 
 This Android application accompanies Arm Learning Paths for running image models from the Arm AI Portal. It is intended for learning how model-specific adapters run on devices and is not a reference production application.
 
