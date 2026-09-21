@@ -214,7 +214,7 @@ In the app:
 
 The app displays the selected mask as a translucent cyan overlay. The status panel displays model load and run times. The result panel displays the selected mask, predicted IoU, low-resolution mask coverage, and mask logit range.
 
-For local experiments, you can alternatively replace the placeholder under `app/src/main/assets/models/mobile-sam-int8-xnnpack-executorch/` with the real `mobile_sam_raspberry_executorch_optimized.pte` file before building the APK. When **Load model** runs and no app-private model file exists, the app copies a real bundled asset into app-private storage. App-private model files persist across normal app updates, so clear the app's storage or remove the existing file before testing a replacement. Do not commit real model binaries to this repository.
+For local experiments, you can alternatively replace the placeholder under `app/src/main/assets/models/mobile-sam-int8-xnnpack-executorch/` with the real `mobile_sam_raspberry_executorch_optimized.pte` file before building the APK. When **Load model** runs and no app-private model file exists, the app copies a real bundled asset into app-private storage. App-private model files persist across normal app updates, so clear the app's storage or remove the existing file before testing a replacement.
 
 ### Copy and run Depth Anything V2 Small
 
@@ -261,7 +261,7 @@ In the app:
 
 The app displays a grayscale relative-disparity map where white represents nearer regions and black represents farther regions. The result panel reports the disparity range, and the status panel reports model load and run times.
 
-For local experiments, you can alternatively replace the placeholder under `app/src/main/assets/models/depth-anything-v2-small-int8-xnnpack-executorch-vivo-x300/` with the real `depth_anything_v2_small_executorch_optimized.pte` file before building the APK. Do not commit real model binaries to this repository.
+For local experiments, you can alternatively replace the placeholder under `app/src/main/assets/models/depth-anything-v2-small-int8-xnnpack-executorch-vivo-x300/` with the real `depth_anything_v2_small_executorch_optimized.pte` file before building the APK. 
 
 ## Extend the application
 
